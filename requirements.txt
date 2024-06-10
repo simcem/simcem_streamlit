@@ -5,4 +5,4 @@ scipy==1.10.1
 streamlit==1.24.0
 xlsxwriter == 3.2.0
 #wimcem @ git+ssh://github.com/toastedcrumpets/wimcem@master
-simcem @ git+ssh://github.com/toastedcrumpets/simcem_devel@gord
+simcem @ git+ssh://github.com/toastedcrumpets/simcem@master
