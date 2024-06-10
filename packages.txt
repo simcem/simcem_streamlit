@@ -1,0 +1,4 @@
+cmake
+coinor-libipopt-dev
+libeigen3-dev
+libboost-all-dev
