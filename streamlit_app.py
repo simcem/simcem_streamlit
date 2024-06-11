@@ -7,15 +7,14 @@ import simcem
 from simcem.clinker import db, clinkerize
 from scipy.optimize import linprog, nnls
 
-#### Wimcem includes
-import wimcem
+
 import pycalphad
 from pycalphad import variables as v
 import numpy as np
 import matplotlib.pyplot as plt
 @st.cache_resource()
 def get_wimcem_db():
-    return pycalphad.Database('submodule/wimcem/C_A_S_Fe_O_M.tdb')
+    return pycalphad.Database('C_A_S_Fe_O_M.tdb')
 ####
 
 def mole_fractions_to_mass_percentages(mole_fractions, component_molar_masses):
