@@ -97,6 +97,45 @@ alias_to_ID, available_IDs = get_avail_IDS()
 
 wimcem_to_simcem_phases = {'YEL':"ye'elimite",'ALPHA_PRIME':'belite','ALPHA':'belite','ANH':'CaSO4','LIQUID':'Liquid','GAS':'SO2/O2', 'RC3S':'alite', 'FERRITE':'Ferrite','MC3S':'alite','GEH':'gehlinite' }
 
+def Haneinify(solids,T,SO2ppm):
+    #SO2 and SO3 are deliberately kept out of the atmosphere! We take any SO3 and put it instead into the solids and keep it there
+    if "SO3" in solids:
+        if 'CaSO4' not in solids:
+            solids['CaSO4'] = 0
+        moles_SO3 = solids['SO3'] / db.getComponent('SO3').mass()
+        solids['CaO'] -= db.getComponent('CaO').mass() * moles_SO3
+        solids['CaSO4'] += moles_SO3 * db.getComponent('CaSO4').mass()
+        if solids['CaO'] < 0:
+            raise RuntimeError('Ran out of CaO while inserting SO3!')
+        del solids['SO3']
+    if 'Mn2O3' in solids:
+        del solids['Mn2O3']
+    if 'P2O5' in solids:
+        del solids['P2O5']
+    #solids = {'CaO':CaO, 'SiO2': SiO2, 'Al2O3':Al2O3, "Fe2O3":Fe2O3, 'Na2O':Na2O, 'MgO':MgO, 'K2O':K2O}
+    solid_mass = simcem.Components(solids) # 'P2O5':P2O5, 'Mn2O3':Mn2O3, 'SO3':SO3, , 'Na2O':Na2O, 'TiO2':TiO2 
+    solid_moles = simcem.MassToMoles(db, solid_mass)
+    SO2ppm = SO2ppm
+    Air = simcem.Components({"O2":21, "N2":79, "CO2":0, "SO2":0, "SO3":0})
+    SO2 = simcem.Components({"SO2":100})
+    gas = Air * (1e6 - SO2ppm) / 1e6 + SO2 * SO2ppm / 1e6    
+    T=T
+    gas, solid, liquid, sys = simcem.clinker.setup_phases(100 * gas, solid_moles, T+273.15)
+    sys.equilibrate()
+    a = solid.components
+    a.removeSmallComponents(1e-7)
+    
+    result = {}
+    totMass = 0
+    for species in a:
+        species_short = species.split(':')[0]
+        if species_short not in result:
+            result[species_short] = 0
+
+        result[species_short] += a[species] * db.getComponent(species).mass()
+        totMass += a[species] * db.getComponent(species).mass()
+             
+    return result    
 
 def formulation_solver():
     df = target_table_df.loc[:]
