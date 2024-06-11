@@ -4,51 +4,19 @@ import plotly.graph_objects as go
 import plotly.express as px
 import numpy as np
 import simcem
-from simcem.clinker import db, clinkerize
+from simcem.clinker import db, clinkerize,bogue_calculation,taylor_calculation
 from scipy.optimize import linprog, nnls
 
-
+#### Wimcem includes
+import wimcem
 import pycalphad
 from pycalphad import variables as v
 import numpy as np
 import matplotlib.pyplot as plt
 @st.cache_resource()
 def get_wimcem_db():
-    return pycalphad.Database('C_A_S_Fe_O_M.tdb')
+    return pycalphad.Database('submodule/wimcem/C_A_S_Fe_O_M.tdb')
 ####
-
-def mole_fractions_to_mass_percentages(mole_fractions, component_molar_masses):
-    # Initialize a dictionary to store the mass percentages of components
-    mass_percentages = {}
-
-    # Calculate the total mass of the phase
-    total_mass = sum(mole_fractions[component] * component_molar_masses[component] for component in mole_fractions)
-
-    # Calculate the mass percentage of each component
-    for component, mole_fraction in mole_fractions.items():
-        mass = mole_fraction * component_molar_masses[component]
-        mass_percentage = (mass / total_mass) * 100
-        mass_percentages[component] = mass_percentage
-
-    return mass_percentages
-
-def additional_calculations(dbf, solids):
-    L = solids["CaO"] / 56.08
-    A = solids["Al2O3"] / 101.96
-    Q = solids["SiO2"] / 60.08
-    F = solids["Fe2O3"] / 159.69
-    S = solids["SO3"] / 80.06
-    FE = 2 * F
-    O = 3 * F + 3 * S
-    total_moles = L + A + Q + FE + O + S
-    X_L = L / total_moles
-    X_FE = FE / total_moles
-    X_A = A / total_moles
-    X_Q = Q / total_moles
-    X_O = O / total_moles
-    X_X = S / total_moles
-    
-    return X_L, X_A, X_Q, X_X, X_FE, X_O
 
 def M(comp):
     return db.getComponent(comp).mass()
@@ -236,7 +204,6 @@ def thermosolver(df, T_degC, SO2ppm, Equilibrium=False):
     sys.equilibrate()
     a = solid.components
     a.removeSmallComponents(1e-7)
-
     #Now extract the result and compute 
     result = collections.defaultdict(float)
     for key, value in a.items():
@@ -301,8 +268,8 @@ elif selected_tab == 'Equilibrium Calculator':
     st.header('Input')
     st.write('Insert your input parameters here, any number of oxides are allowed, just double click and add. ')
     solid_composition = {
-        'Oxide':['CaO', 'Al2O3', 'SO3', 'Fe2O3', 'SiO2'],
-    "Mass Amounts":[52.41, 18.87, 5.99, 3.18, 19.57]
+        'Oxide':['CaO', 'SiO2', 'Al2O3', 'Fe2O3', 'SO3'],
+    "Mass Amounts":[65.6, 21.5, 5.2, 2.8, 1.0]
     }
     solid_composition_df = pd.DataFrame(solid_composition)
     oxide_options = ['CaO', 'Al2O3', 'SO3', 'Fe2O3', 'SiO2', 'MgO', 'CaSO4']
@@ -313,10 +280,15 @@ elif selected_tab == 'Equilibrium Calculator':
         Amount=st.column_config.NumberColumn("Mass Amount",format="%.2f", min_value=0,))
     )
     # Conditions #
-    temperature = st.number_input("Temperature (°C)", value=1450.0,min_value=0.0,step=1.0,max_value=3000.0)
-    so2_ppm = st.number_input("SO2ppm", value=0, min_value=0,step=100,max_value=20000)
-    if st.button("Calculate Composition"):
-        thermosolver(solid_composition_df,T_degC=temperature,SO2ppm=so2_ppm,Equilibrium=True)
+    T_degC = st.slider("Clinkering Temperature", 600.0, 1450.0, 1250.0, 1.0, format="%f℃")
+    st.write("A limit of 1450℃ for the clinkering temperature is given for OPC but melting is not included in the Hanein et al database so take its results with heavy caution.")
+    SO2ppm = st.slider("SO₂ partial pressure", 1.0, 95000.0, 2000.0, 1.0, format="%fPPM")
+    st.write("SO₂ partial pressure is limited to 95,000 PPM as that's the max concentration in air to allow full combination to SO₃.")
+    results_df = thermosolver(solid_composition_df,T_degC=T_degC,SO2ppm=SO2ppm,Equilibrium=True)
+    st.header('Bogue prediction')
+    oxide_percent = {key:value for key, value in zip(solid_composition_df['Oxide'].to_dict().values(), solid_composition_df['Mass Amounts'].to_dict().values())}
+    bogue_results = bogue_calculation(oxide_percent)
+    st.write(bogue_results)    
 ## Create a new tab for XRF data upload ##
 elif selected_tab == "Upload XRF Data":
     st.title('Upload XRF Data')
