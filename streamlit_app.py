@@ -175,8 +175,6 @@ def optimiser(target_rows, target_weights, debug=False):
 
     b_eq = [0.0] * len(used_elements) + [1.0] #Elements cancel, input total sums to 1
     A_eq = eq_constraint_matrix[used_elements + ["TotalConstraint"]].to_numpy().transpose()
-    #st.write("Constraints",eq_constraint_matrix)
-    #st.write("A_eq", A_eq)
     res = linprog(c, A_eq = A_eq, b_eq = b_eq, bounds=[(0, None)]*n)
     if not res.success:
         st.error("Failed to find max possible amount of " + str(row['ID']))
@@ -248,7 +246,7 @@ def thermosolver(df, T_degC, SO2ppm, Equilibrium=False):
         result[key.split(":")[0]] += value *  db.getComponent(key).mass()
     sorted_results = sorted([(v,k) for k,v in result.items()], reverse=True)
     st.write("Predicted stable phases and compositions (using Hanein et al database)")
-    results_df = pd.DataFrame([{k:v for v,k in sorted_results}]) 
+    results_df = pd.DataFrame([{k:v for v,k in sorted_results}])
     st.write(results_df)
     if Equilibrium:
         extra_calcs = {
@@ -339,7 +337,10 @@ elif selected_tab == "Upload XRF Data":
     'CaO': [9.32, 20.73, 4.82, 50.26, 13.75, 100.0],
     'Fe2O3': [6.31, 3.5, 4.07, 0.68, 54.05, 0],
     'Al2O3': [15.85, 7.12, 10.43, 1.26, 0.99, 0],
-    'SO3': [0.01, 2.44, 0.27, 0.29, 0.58, 0]
+    'SO3': [0.01, 2.44, 0.27, 0.29, 0.58, 0],
+    'K2O': [4.75,0.43,0.73,0.22,2.14,0],
+    'MgO':[3.61,6.44,9.31,2.07,6.17,0],
+
     }
 
     df = pd.DataFrame(data)
@@ -360,19 +361,27 @@ elif selected_tab == "Upload XRF Data":
     uploaded_file = st.file_uploader("Upload XRF Data (Excel file)", type=["xlsx"])
 
     if uploaded_file is not None:
-        # Read the uploaded Excel file into a DataFrame
         xrf_data = pd.read_excel(uploaded_file)
-        xrf_data.insert(0,'Include',True)
-        #xrf_data.set_index('ID')
-        # Display the XRF data
-        st.write("Uploaded XRF Data:")
-        st.write(xrf_data)
-        df = xrf_data
-        df = df.set_index("ID")
+
+        if 'Include' not in xrf_data.columns:
+            xrf_data.insert(0, 'Include', True)
+
+        edited_data = st.data_editor(xrf_data, key="data_editor")
+        
+        if 'xrf_data' not in st.session_state:
+            st.session_state['xrf_data'] = xrf_data
+        
+        st.session_state['xrf_data'] = edited_data
+
+        df = edited_data.set_index("ID")
         oxides = df.columns[1:].tolist()
+
+        # st.write("Processed DataFrame:")
+        # st.write(df)
+        
     else:
         raise ValueError("Raw material data not found. Please upload raw material data first.")
-        
+
     
     st.header("Target formulation")
     st.write('Specify what you intend to make in mass units. You can add additional compounds by using the empty row at the bottom to search for components.')
@@ -386,8 +395,7 @@ elif selected_tab == "Upload XRF Data":
                                         Amount=st.column_config.NumberColumn("Mass Amount", help="The amount of the phase present", format="%.2f", min_value=0, default=0)
                                     ))
     
-    
-    raw_material_table_df_moles = pd.DataFrame([{"ID":row['ID']} | row_to_elemental(row) for idx, row in xrf_data.iterrows()])
+    raw_material_table_df_moles = pd.DataFrame([{"ID":row['ID']} | row_to_elemental(row) for idx, row in edited_data.iterrows() if row['Include']])
     #Figure out the elemental composition of the target materials
     target_table_df_moles = pd.DataFrame([{"ID":ID} | dict(db.getComponent(alias_to_ID[ID]).getElements()) for ID, row in target_table_df.iterrows()])
     
@@ -630,50 +638,50 @@ elif selected_tab == "Mix Design":
     
     comps = {k:v/total for k,v in comps.items()}
     
-    st.header("EXPERIMENTAL: Abdul et al Thermodynamic solver")
-    st.write("This solver includes melt phases and high temperature data, but only includes the CaO-SiO2-Al2O3-FeO-Fe2O3-O-S system and is still being developed.")
-    st.write("Input solids vector")
-    st.write(comps)
-    st.write("Simcem solids moles")
-    st.write(solids_moles)
-    dbf = get_wimcem_db()
-    phases = sorted(dbf.phases.keys())
-    from pycalphad import equilibrium
-    conditions = {#This is temperature
-                  v.T:T_degC + 273,
-                  # System size (so in this case 1 mole)
-                  v.N:1,
-                  #Pressure (this is the default_
-                  v.P:101325}
-    #Skip the first comp, as it is deduced by pycalphad which requires mol frac to sum to one.
-    for k in list(comps.keys())[1:]:
-        conditions[v.X(k)] = comps[k]
+    # st.header("EXPERIMENTAL: Abdul et al Thermodynamic solver")
+    # st.write("This solver includes melt phases and high temperature data, but only includes the CaO-SiO2-Al2O3-FeO-Fe2O3-O-S system and is still being developed.")
+    # st.write("Input solids vector")
+    # st.write(comps)
+    # st.write("Simcem solids moles")
+    # st.write(solids_moles)
+    # dbf = get_wimcem_db()
+    # phases = sorted(dbf.phases.keys())
+    # from pycalphad import equilibrium
+    # conditions = {#This is temperature
+    #               v.T:T_degC + 273,
+    #               # System size (so in this case 1 mole)
+    #               v.N:1,
+    #               #Pressure (this is the default_
+    #               v.P:101325}
+    # #Skip the first comp, as it is deduced by pycalphad which requires mol frac to sum to one.
+    # for k in list(comps.keys())[1:]:
+    #     conditions[v.X(k)] = comps[k]
 
-    elements = list(comps.keys())
-    if "FE" in comps:
-       elements = elements + ["VA"]
-    eq = equilibrium(dbf, elements, phases, conditions=conditions, calc_opts ={"pdens":200})
-    # st.write("Solver results")
-    # st.text(eq)
-    st.write("Phases and compositions")
-    phase_names_unfiltered = eq['Phase'].squeeze()
-    row_selector = (phase_names_unfiltered != '')
-    phase_names = phase_names_unfiltered[row_selector]
-    fractions = eq["NP"].squeeze()[row_selector]
-    if len(phase_names) == 0:
-        st.error(f'(Convergence failure) at T='+str(T_degC))
-        for k in list(comps.keys())[1:]:
-            conditions[v.X(k)] = round(comps[k],3)
-        eq = equilibrium(dbf, elements, phases, conditions=conditions, calc_opts ={"pdens":200})
-        st.write("Retrying results (I'm rounding off some of the digits in the mole fraction, I found this helps)")
-        st.write("Phases and compositions (Ph %)")
-        phase_names_unfiltered = eq['Phase'].squeeze()
-        row_selector = (phase_names_unfiltered != '')
-        phase_names = phase_names_unfiltered[row_selector]
-        fractions = eq["NP"].squeeze()[row_selector]
-    results_dict = {}
-    for ph,fr in zip(phase_names.values,fractions.values):
-        x = wimcem_to_simcem_phases[ph]
-        results_dict[x] = [fr*100]
-    results_df = pd.DataFrame(results_dict)
-    st.write(results_df)
+    # elements = list(comps.keys())
+    # if "FE" in comps:
+    #    elements = elements + ["VA"]
+    # eq = equilibrium(dbf, elements, phases, conditions=conditions, calc_opts ={"pdens":200})
+    # # st.write("Solver results")
+    # # st.text(eq)
+    # st.write("Phases and compositions")
+    # phase_names_unfiltered = eq['Phase'].squeeze()
+    # row_selector = (phase_names_unfiltered != '')
+    # phase_names = phase_names_unfiltered[row_selector]
+    # fractions = eq["NP"].squeeze()[row_selector]
+    # if len(phase_names) == 0:
+    #     st.error(f'(Convergence failure) at T='+str(T_degC))
+    #     for k in list(comps.keys())[1:]:
+    #         conditions[v.X(k)] = round(comps[k],3)
+    #     eq = equilibrium(dbf, elements, phases, conditions=conditions, calc_opts ={"pdens":200})
+    #     st.write("Retrying results (I'm rounding off some of the digits in the mole fraction, I found this helps)")
+    #     st.write("Phases and compositions (Ph %)")
+    #     phase_names_unfiltered = eq['Phase'].squeeze()
+    #     row_selector = (phase_names_unfiltered != '')
+    #     phase_names = phase_names_unfiltered[row_selector]
+    #     fractions = eq["NP"].squeeze()[row_selector]
+    # results_dict = {}
+    # for ph,fr in zip(phase_names.values,fractions.values):
+    #     x = wimcem_to_simcem_phases[ph]
+    #     results_dict[x] = [fr*100]
+    # results_df = pd.DataFrame(results_dict)
+    # st.write(results_df)
