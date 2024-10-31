@@ -5,7 +5,7 @@ import plotly.express as px
 import numpy as np
 import simcem
 from simcem.clinker import db, clinkerize,bogue_calculation,taylor_calculation
-from scipy.optimize import linprog, nnls
+from scipy.optimize import linprog, nnls, minimize
 
 #### Wimcem includes
 import pycalphad
@@ -51,6 +51,83 @@ import collections
 
 
 excluded_oxides = {"ZnO", "Mn₃O₄", "MnO", "P₂O₅", "SrO"}
+
+class CementOptimizer:
+    def __init__(self):
+        self.materials = self.create_materials_df()
+        self.original_mix = self.create_default_mix()
+    def create_materials_df(self):
+        # Get all possible oxides excluding the excluded ones
+        all_oxides = set().union(*[set(material.keys()) for material in initial_raw_solids.values()])
+        all_oxides = sorted(all_oxides - excluded_oxides)
+        
+        # Create DataFrame with zeros
+        df = pd.DataFrame(0, 
+                         index=list(initial_raw_solids.keys()),
+                         columns=all_oxides)
+        
+        # Fill in the values
+        for material, composition in initial_raw_solids.items():
+            for oxide, value in composition.items():
+                if oxide not in excluded_oxides:
+                    df.loc[material, oxide] = value
+                    
+        return df
+
+    def create_default_mix(self):
+        return pd.Series({material: 100/len(default_include) if material in default_include else 0 
+                         for material in self.materials.index})
+
+    def calculate_composition(self, mix_proportions):
+        """Calculate oxide composition from mix proportions"""
+        return pd.Series(np.dot(mix_proportions, self.materials) / 100, 
+                        index=self.materials.columns)
+
+    def calculate_LSF(self, composition):
+        """Calculate Lime Saturation Factor"""
+        return 100 * composition['CaO'] / (2.8 * composition['SiO2'] + 
+                                         1.18 * composition['Al2O3'] + 
+                                         0.65 * composition['Fe2O3'])
+
+    def optimize_mix(self, target_oxide, target_value):
+        """Optimize mix for target oxide content"""
+        original_comp = self.calculate_composition(self.original_mix)
+        
+        def objective_function(x):
+            current_comp = self.calculate_composition(pd.Series(x, index=self.materials.index))
+            oxide_penalty = 100 * (current_comp[target_oxide] - target_value) ** 2
+            lsf_penalty = 10 * (self.calculate_LSF(current_comp) - self.calculate_LSF(original_comp)) ** 2
+            sum_penalty = 1000 * (sum(x) - 100) ** 2
+            return oxide_penalty + lsf_penalty + sum_penalty
+
+        constraints = [{'type': 'eq', 'fun': lambda x: sum(x) - 100}]
+        bounds = [(0, 100) for _ in range(len(self.materials.index))]
+        
+        result = minimize(
+            objective_function,
+            self.original_mix.values,
+            method='SLSQP',
+            bounds=bounds,
+            constraints=constraints,
+            options={'ftol': 1e-8}
+        )
+        
+        return self.process_results(result)
+
+    def process_results(self, optimization_result):
+        """Process optimization results"""
+        new_mix = pd.Series(optimization_result.x, index=self.materials.index)
+        new_comp = self.calculate_composition(new_mix)
+        original_comp = self.calculate_composition(self.original_mix)
+        
+        return {
+            'original_mix': self.original_mix,
+            'new_mix': new_mix,
+            'original_composition': original_comp,
+            'new_composition': new_comp,
+            'original_LSF': self.calculate_LSF(original_comp),
+            'new_LSF': self.calculate_LSF(new_comp)
+        }
 
 def simcem_name(name : str):
     return name.replace("₂", "2").replace("₃", "3").replace("₄", "4").replace("₅", "5")
@@ -304,8 +381,8 @@ elif selected_tab == 'Equilibrium Calculator':
     st.header('Input')
     st.write('Insert your input parameters here, any number of oxides are allowed, just double click and add. ')
     solid_composition = {
-        'Oxide':['CaO', 'SiO2', 'Al2O3', 'Fe2O3', 'SO3'],
-    "Mass Amounts":[65.6, 21.5, 5.2, 2.8, 1.0]
+        'Oxide':['CaO', 'SiO2', 'Al2O3', 'Fe2O3', 'SO3', 'MgO'],
+    "Mass Amounts":[65.6, 21.5, 5.2, 2.8, 1.9, 2.0]
     }
     solid_composition_df = pd.DataFrame(solid_composition)
     oxide_options = ['CaO', 'Al2O3', 'SO3', 'Fe2O3', 'SiO2', 'MgO', 'CaSO4']
@@ -318,11 +395,12 @@ elif selected_tab == 'Equilibrium Calculator':
     # Conditions #
     T_degC = st.slider("Clinkering Temperature", 600.0, 1450.0, 1250.0, 1.0, format="%f℃")
     st.write("A limit of 1450℃ for the clinkering temperature is given for OPC but melting is not included in the Hanein et al database so take its results with heavy caution.")
-    SO2ppm = st.slider("SO₂ partial pressure", 1.0, 95000.0, 2000.0, 1.0, format="%fPPM")
+    SO2ppm = st.slider("SO₂ partial pressure", 0.0, 95000.0, 2000.0, 1.0, format="%fPPM")
     st.write("SO₂ partial pressure is limited to 95,000 PPM as that's the max concentration in air to allow full combination to SO₃.")
     results_df = thermosolver(solid_composition_df,T_degC=T_degC,SO2ppm=SO2ppm,Equilibrium=True)
     st.header('Bogue prediction')
     oxide_percent = {key:value for key, value in zip(solid_composition_df['Oxide'].to_dict().values(), solid_composition_df['Mass Amounts'].to_dict().values())}
+    print(oxide_percent)
     bogue_results = bogue_calculation(oxide_percent)
     st.write(bogue_results)    
 ## Create a new tab for XRF data upload ##
