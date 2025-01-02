@@ -594,7 +594,7 @@ elif selected_tab == "Mix Design":
         df["CO₂"] = df.apply(lambda row: min((100-min(100, max(0, row["Total"]))), row["CO₂"]),axis=1)
         df["Total+CO₂"] = df["Total"] + df["CO₂"]
         st.session_state['raw_df'] = df
-        st.experimental_rerun()
+        st.rerun()
 
     st.header("Target formulation")
     st.write('Specify what you intend to make in mass units. You can add additional compounds by using the empty row at the bottom to search for components.')
@@ -610,7 +610,7 @@ elif selected_tab == "Mix Design":
 
     if not target_table_df.equals(st.session_state['target_df']):
         st.session_state['target_df'] = target_table_df
-        st.experimental_rerun()
+        st.rerun()
 
     
     raw_material_table_df_moles = pd.DataFrame([{"ID":row['ID']} | row_to_elemental(row) for idx, row in raw_material_table_df.iterrows() if row['Include']])
