@@ -25,11 +25,16 @@ initial_raw_solids = {
     #"bauxite": simcem.Components ({'Al₂O₃':0.6932, 'SiO₂':0.1152}),
     #"clay": simcem.Components ({'Al₂O₃':0.3818, 'SiO₂':0.3924}),
     #"Ca4Al6SO16": simcem.Components ({'Ca4Al6SO16':100}),
-    "#1 Clay": ({'SiO₂':46.89, 'Al₂O₃':15.85, "Fe₂O₃":6.31, "CaO":9.32, "MgO":3.61, "SO₃":0.01, "Na₂O":0.19, "K₂O":4.75, "TiO₂":0.75, "MnO":0.021, "SrO":0.02, "P₂O₅":0.108}),
-    "#1 Grey shale": ({'SiO₂':36.38, 'Al₂O₃':7.12, "Fe₂O₃":3.5, "CaO":20.73, "MgO":6.44, "SO₃":2.44, "Na₂O":0.09, "K₂O":0.43, "TiO₂":0.23, "MnO":0.012, "SrO":0.01, "P₂O₅":0.612}),
-    "#1 Brown shale":  ({'SiO₂':55.60, 'Al₂O₃':10.43, "Fe₂O₃":4.07, "CaO":4.82, "MgO":9.31, "SO₃":0.27, "Na₂O":0.32, "K₂O":0.73, "TiO₂":0.41, "MnO":0.008, "SrO":0.01, "P₂O₅":1.724}),
-    "#1 Limestone": ({'SiO₂':6.85, 'Al₂O₃':1.26, "Fe₂O₃":0.68, "CaO":50.26, "MgO":2.07, "SO₃":0.29, "Na₂O":0.01, "K₂O":0.22, "TiO₂":0.19, "MnO":0.02, "SrO":0.04, "P₂O₅":0.011}),
-    "#1 Iron oxide" : ({"Fe₂O₃":54.05, "SiO₂":4.71, "Al₂O₃":0.99, "CaO":13.75, "MgO":6.17, "SO₃":0.58, "Na₂O":7.24, "K₂O":2.14, "TiO₂":0.25, "Mn₃O₄":2.70, "ZnO":7.17}),
+    "Industrial Clay": ({'SiO₂':38.08, 'Al₂O₃':9.61, "Fe₂O₃":3.89, "CaO":16.68, "MgO":3.88, "SO₃":1.15, "Na₂O":0.45, "K₂O":3.28, "TiO₂":0.51, "MnO":0.07, "SrO":1.19, "P₂O₅":0.11, 'ZnO':0.01}),
+    
+    "Industrial Grey shale": ({'SiO₂':36.38, 'Al₂O₃':7.12, "Fe₂O₃":3.5, "CaO":20.72, "MgO":6.44, "SO₃":2.44, "Na₂O":0.09, "K₂O":0.43, "TiO₂":0.23, "MnO":0.12, "SrO":0.01, "P₂O₅":0.612}),
+    
+    "Industrial Brown shale":  ({'SiO₂':55.60, 'Al₂O₃':10.43, "Fe₂O₃":4.07, "CaO":4.82, "MgO":9.31, "SO₃":0.27, "Na₂O":0.32, "K₂O":0.73, "TiO₂":0.41, "MnO":0.008, "SrO":0.01, "P₂O₅":1.724, 'ZnO':0.00}),
+    
+    "Industrial Limestone": ({'SiO₂':5.27, 'Al₂O₃':0.91, "Fe₂O₃":0.49, "CaO":49.95, "MgO":1.46, "SO₃":0.18, "Na₂O":0.04, "K₂O":0.08, "TiO₂":0.06, "MnO":0.03, "SrO":0.02, "P₂O₅":0.01, 'ZnO':0.00}),
+    
+    "Industrial Iron oxide" : ({"Fe₂O₃":34.39, "SiO₂":27.81, "Al₂O₃":15.59, "CaO":5.39, "MgO":0.31, "SO₃":0.74, "Na₂O":0.26, "K₂O":0.25, "TiO₂":1.80, "MnO":0.13, "ZnO":0.01, "SrO":0.02, "P₂O₅":0.13}),
+    
     '"Chinese" Bauxite': {"CaO":0.16, "Al₂O₃":69.32, "SiO₂":11.52, "Fe₂O₃":1.21},
     'Gypsum': ({"SiO₂":1.58, "Al₂O₃":0.06, "Fe₂O₃":0.05, "CaO": 32.95, "MgO": 0.12, "SO₃":57.54}),
     "Anhydrite":  {"CaO":M("CaO") / M("CaSO4") * 100, "SO₃":M("SO3") / M("CaSO4") * 100},
@@ -136,7 +141,6 @@ def simcem_name(name : str):
 oxides = list(set(oxide for key, oxides in initial_raw_solids.items() for oxide,amt in oxides.items() if oxide not in excluded_oxides))
 
 initial_targets =collections.defaultdict(float, {
-     "alite":0.0,
      "belite":60.0,
      "ye'elimite":30.0,
      "Cement:C4AF":10.0,
