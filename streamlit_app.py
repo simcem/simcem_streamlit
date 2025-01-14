@@ -49,7 +49,7 @@ initial_raw_solids = {
     # "Clay_R":({"CaO":2.93, "Al₂O₃":19.72, "Fe₂O₃":9.56, "SiO2":56.92, "SO₃":4.83}),
     # '"Gypsum"': ({"SiO₂":2.11, "Al₂O₃":0.74, "Fe₂O₃":0.42, "CaO": 35.82, "SO₃":53.26}),
 }
-default_include = ["#1 Clay", "#1 Limestone", "Elemental Sulfur", "Gypsum"]
+default_include = ["Industrial Clay", " Industrial Limestone", "Elemental Sulfur", "Gypsum"]
 #default_include = ["QNCC_limestone", "Sulfur", "Alumina"]
 
 import collections
