@@ -10,7 +10,6 @@ from scipy.optimize import linprog, nnls, minimize
 #### Wimcem includes
 import pycalphad
 from pycalphad import variables as v
-import numpy as np
 import matplotlib.pyplot as plt
 @st.cache_resource()
 def get_wimcem_db():
@@ -427,17 +426,18 @@ elif selected_tab == "Upload XRF Data":
 
     df = pd.DataFrame(data)
 
-# Save the sample dataframe to an Excel file
-    df.to_excel('example.xlsx', index=False)
-    example_file_path = 'example.xlsx'
-    example_df = pd.read_excel(example_file_path)
-    st.dataframe(example_df)
-    with open(example_file_path, 'rb') as file:
-        btn = st.download_button(
-            label="Download example Excel file",
-            data=file,
-            file_name='example.xlsx',
-            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+# Create Excel file in memory instead of writing to filesystem
+    import io
+    excel_buffer = io.BytesIO()
+    df.to_excel(excel_buffer, index=False, engine='xlsxwriter')
+    excel_buffer.seek(0)
+    
+    st.dataframe(df)
+    btn = st.download_button(
+        label="Download example Excel file",
+        data=excel_buffer,
+        file_name='example.xlsx',
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
     debug= st.checkbox("Verbose/Debug mode",False)
     uploaded_file = st.file_uploader("Upload XRF Data (Excel file)", type=["xlsx"])

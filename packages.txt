@@ -1,6 +1,9 @@
+# System dependencies for simcem package compilation
+# WARNING: These dependencies may cause Streamlit Cloud deployment to fail
+# due to build timeout or unavailable packages
 cmake
 coinor-libipopt-dev
-libeigen3-dev
+libeigen3-dev 
 libboost-all-dev
 libsundials-dev
 
