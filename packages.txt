@@ -3,4 +3,4 @@ coinor-libipopt-dev
 libeigen3-dev 
 libboost-all-dev
 libsundials-dev
-python-pybind11
+pybind11-dev
