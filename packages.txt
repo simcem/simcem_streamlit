@@ -1,6 +1,6 @@
-cmake
-coinor-libipopt-dev
-libeigen3-dev 
-libboost-all-dev
-libsundials-dev
-pybind11-dev
+#cmake
+#coinor-libipopt-dev
+#libeigen3-dev 
+#libboost-all-dev
+#libsundials-dev
+#pybind11-dev
