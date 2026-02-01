@@ -42,6 +42,7 @@ initial_raw_solids = {
     "Alumina" : ({"Al₂O₃":100}),
     "Elemental Sulfur" : ({"SO₃":M("SO3")/M("S")*100}),
     "Sillica" : ({"SiO₂":100}),
+    "Iron Oxide" : ({"Fe₂O₃":100}),
     # "NMP":({"CaO":2.03, "Al₂O₃":72.93, "Fe₂O₃":1.27, "SiO₂":12.79, "SO₃":0.61}),
     # "Sludge":({"CaO":2.01, "Al₂O₃":70.98, "Fe₂O₃":3.17, "SiO2":22.56, "SO₃":0.01}),
     # "Clay_I":({"CaO":0.06, "Al₂O₃":36.77, "Fe₂O₃":1.96, "SiO2":55.47}),
@@ -175,7 +176,17 @@ def get_avail_IDS():
 alias_to_ID, available_IDs = get_avail_IDS()
 
 
-wimcem_to_simcem_phases = {'YEL':"ye'elimite",'ALPHA_PRIME':'belite','ALPHA':'belite','ANH':'CaSO4','LIQUID':'Liquid','GAS':'SO2/O2', 'RC3S':'alite', 'FERRITE':'Ferrite','MC3S':'alite','GEH':'gehlinite' }
+wimcem_to_simcem_phases = {
+    'YEL': "C4A3S̅",
+    'ALPHA_PRIME': 'a`-C2S',
+    'ALPHA': 'a-C2S',
+    'ANH': 'CaSO4',
+    'LIQUID': 'Liquid',
+    'GAS': 'gas',
+    'FERRITE': 'C4AF',
+    'CAS2': 'CAS2',
+    'PCS': 'CaSiO3',
+}
 
 def Haneinify(solids,T,SO2ppm):
     #SO2 and SO3 are deliberately kept out of the atmosphere! We take any SO3 and put it instead into the solids and keep it there
@@ -325,19 +336,30 @@ def thermosolver(df, T_degC, SO2ppm, Equilibrium=False):
     for key, value in a.items():
         result[key.split(":")[0]] += value *  db.getComponent(key).mass()
     sorted_results = sorted([(v,k) for k,v in result.items()], reverse=True)
-    st.write("Predicted stable phases and compositions (using Hanein et al database)")
+    st.subheader("Predicted stable phases and compositions (using Hanein et al database)")
     results_df = pd.DataFrame([{k:v for v,k in sorted_results}])
-    st.write(results_df)
+    # Transpose for better display
+    results_df_display = results_df.transpose()
+    results_df_display.columns = ['Mass (g)']
+    results_df_display.index.name = 'Phase'
+    st.dataframe(results_df_display, use_container_width=True, column_config={
+        'Mass (g)': st.column_config.NumberColumn(format="%.2f")
+    })
     if Equilibrium:
         extra_calcs = {
-        'LSF': [(oxide_percent['CaO']) / (2.8 * oxide_percent['SiO2'] + 1.2 * oxide_percent['Al2O3'] + 0.65 * oxide_percent['Fe2O3'])],
-        'SR' : [oxide_percent['SiO2'] / (oxide_percent['Al2O3'] + oxide_percent['Fe2O3'])],
-        'AR' : [oxide_percent['Al2O3'] / oxide_percent['Fe2O3']],
+        'LSF': oxide_percent['CaO'] / (2.8 * oxide_percent['SiO2'] + 1.2 * oxide_percent['Al2O3'] + 0.65 * oxide_percent['Fe2O3']),
+        'SR' : oxide_percent['SiO2'] / (oxide_percent['Al2O3'] + oxide_percent['Fe2O3']),
+        'AR' : oxide_percent['Al2O3'] / oxide_percent['Fe2O3'],
     }
-        extra_calcs_df = pd.DataFrame(extra_calcs)
-        st.markdown("**LSF, SR and AR of the oxide raw mix**:")
+        extra_calcs_df = pd.DataFrame([extra_calcs])
+        extra_calcs_df = extra_calcs_df.transpose()
+        extra_calcs_df.columns = ['Value']
+        extra_calcs_df.index.name = 'Parameter'
+        st.subheader("LSF, SR and AR of the oxide raw mix")
         st.write("LSF is calculated by CaO/(2.8 SiO2 + 1.2 Al2O3 + 0.65 Fe2O3)")
-        st.write(extra_calcs_df)
+        st.dataframe(extra_calcs_df, use_container_width=True, column_config={
+            'Value': st.column_config.NumberColumn(format="%.3f")
+        })
         return results_df
     st.write(f"Note: Check the converged gas SOx of {(gas.components['SO2']+gas.components['SO3'])/gas.components.N() * 1e6:.0f} PPM is close enough to your setpoint above. Sometimes too much can react.")
     st.markdown("**Oxide compostion of raw mix (for checking on phase diagrams)**")
@@ -349,17 +371,24 @@ def thermosolver(df, T_degC, SO2ppm, Equilibrium=False):
     ## This is a check for the subscripts in the original names, only applies to the Mix Design page
     if 'SiO₂' in transposed_df.index:
         transposed_df.index= [simcem_name(oxide) for oxide in transposed_df.index]
-    ## Calculation of moduli 
+    ## Calculation of moduli
     extra_calcs = {
-        'LSF': [(transposed_df['CaO']) / (2.8 * transposed_df['SiO2'] + 1.2 * transposed_df['Al2O3'] + 0.65 * transposed_df['Fe2O3'])],
-        'SR' : [transposed_df['SiO2'] / (transposed_df['Al2O3'] + transposed_df['Fe2O3'])],
-        'AR' : [transposed_df['Al2O3'] / transposed_df['Fe2O3']],
+        'LSF': transposed_df['CaO'] / (2.8 * transposed_df['SiO2'] + 1.2 * transposed_df['Al2O3'] + 0.65 * transposed_df['Fe2O3']),
+        'SR' : transposed_df['SiO2'] / (transposed_df['Al2O3'] + transposed_df['Fe2O3']),
+        'AR' : transposed_df['Al2O3'] / transposed_df['Fe2O3'],
     }
-    extra_calcs_df = pd.DataFrame(extra_calcs)
-    st.write(oxides_in_mass["Oxide % of raw mix"])
-    st.markdown("**LSF, SR and AR of the oxide raw mix**:")
+    extra_calcs_df = pd.DataFrame([extra_calcs])
+    extra_calcs_df = extra_calcs_df.transpose()
+    extra_calcs_df.columns = ['Value']
+    extra_calcs_df.index.name = 'Parameter'
+    st.dataframe(oxides_in_mass[["Oxide % of raw mix"]], use_container_width=True, column_config={
+        'Oxide % of raw mix': st.column_config.NumberColumn(format="%.2f")
+    })
+    st.subheader("LSF, SR and AR of the oxide raw mix")
     st.write("LSF is calculated by CaO/(2.8 SiO2 + 1.2 Al2O3 + 0.65 Fe2O3)")
-    st.write(extra_calcs_df)
+    st.dataframe(extra_calcs_df, use_container_width=True, column_config={
+        'Value': st.column_config.NumberColumn(format="%.3f")
+    })
     st.write(f'Total is {oxides_in_mass["Oxide % of raw mix"].sum():.2f}. Note this percentage may be less than expected due to LOI of CO2 not accounted for in the raw mix table.')
     ## I am returning the input solid moles for additional calcs but also a dataframe for the results, this is then saved as a excel sheet 
     return solids_moles, results_df
@@ -392,8 +421,8 @@ elif selected_tab == 'Equilibrium Calculator':
     # Make an editable table #
     solid_composition_df= st.data_editor(solid_composition_df,num_rows='dynamic',
         column_config=dict(
-        _index=st.column_config.SelectboxColumn("Oxide",required=True,options=oxide_options),
-        Amount=st.column_config.NumberColumn("Mass Amount",format="%.2f", min_value=0,))
+        Oxide=st.column_config.SelectboxColumn("Oxide",required=True,options=oxide_options),
+        **{"Mass Amounts":st.column_config.NumberColumn("Mass Amounts",format="%.2f", min_value=0,)})
     )
     # Conditions #
     T_degC = st.slider("Clinkering Temperature", 600.0, 1450.0, 1250.0, 1.0, format="%f℃")
@@ -401,11 +430,126 @@ elif selected_tab == 'Equilibrium Calculator':
     SO2ppm = st.slider("SO₂ partial pressure", 0.0, 95000.0, 2000.0, 1.0, format="%fPPM")
     st.write("SO₂ partial pressure is limited to 95,000 PPM as that's the max concentration in air to allow full combination to SO₃.")
     results_df = thermosolver(solid_composition_df,T_degC=T_degC,SO2ppm=SO2ppm,Equilibrium=True)
+
     st.header('Bogue prediction')
+    st.write("Classical Bogue calculation for comparison (less accurate than thermodynamic prediction above)")
     oxide_percent = {key:value for key, value in zip(solid_composition_df['Oxide'].to_dict().values(), solid_composition_df['Mass Amounts'].to_dict().values())}
-    print(oxide_percent)
     bogue_results = bogue_calculation(oxide_percent)
-    st.write(bogue_results)    
+    if isinstance(bogue_results, dict):
+        bogue_df = pd.DataFrame([bogue_results])
+    else:
+        bogue_df = pd.DataFrame(bogue_results)
+
+    # Format the dataframe for better display
+    bogue_df = bogue_df.transpose()
+    bogue_df.columns = ['Mass (g)']
+    bogue_df.index.name = 'Phase'
+
+    st.dataframe(bogue_df, use_container_width=True, column_config={
+        'Mass (g)': st.column_config.NumberColumn(format="%.2f")
+    })
+
+    # EXPERIMENTAL: Abdul et al solver
+    st.header("EXPERIMENTAL: Abdul et al Thermodynamic solver")
+    st.write("This solver includes melt phases and high temperature data, but only includes the CaO-SiO2-Al2O3-FeO-Fe2O3-O-S system and is still being developed.")
+    st.write("This currently only does a single point equilibrium calculation.")
+
+    # Convert oxide percentages to moles for wimcem
+    oxide_percent_eq = {key:value for key, value in zip(solid_composition_df['Oxide'].to_dict().values(), solid_composition_df['Mass Amounts'].to_dict().values())}
+    solids_mass_eq = simcem.Components(oxide_percent_eq)
+    solids_moles_eq = simcem.MassToMoles(db, solids_mass_eq)
+
+    # Prepare composition for pycalphad
+    req_oxides = {"CaO":"L", "Al2O3":"A", "SiO2":"Q"}
+    comps_eq = collections.defaultdict(float)
+    total_eq = 0
+    for ox, ox_w in req_oxides.items():
+        if ox not in solids_moles_eq:
+            comps_eq[ox_w] = 0
+        else:
+            comps_eq[ox_w] = solids_moles_eq[ox]
+            total_eq += solids_moles_eq[ox]
+    if "CaSO4" in solids_moles_eq:
+        comps_eq["X"] += solids_moles_eq["CaSO4"]
+        comps_eq["L"] += solids_moles_eq["CaSO4"]
+        comps_eq["O"] += 3 * solids_moles_eq["CaSO4"]
+        total_eq += solids_moles_eq["CaSO4"] + solids_moles_eq["CaSO4"] + 3*solids_moles_eq["CaSO4"]
+    if "Fe2O3" in solids_moles_eq:
+        comps_eq["FE"] += 2 * solids_moles_eq["Fe2O3"]
+        comps_eq["O"] += 3 * solids_moles_eq["Fe2O3"]
+        total_eq += 2 * solids_moles_eq["Fe2O3"] + 3 * solids_moles_eq["Fe2O3"]
+
+    comps_eq = {k:v/total_eq for k,v in comps_eq.items()}
+
+    with st.expander("Show input composition details"):
+        st.subheader("Input solids vector")
+        comps_df_eq = pd.DataFrame([comps_eq])
+        comps_df_eq = comps_df_eq.transpose()
+        comps_df_eq.columns = ['Mole Fraction']
+        comps_df_eq.index.name = 'Component'
+        st.dataframe(comps_df_eq, use_container_width=True, column_config={
+            'Mole Fraction': st.column_config.NumberColumn(format="%.4f")
+        })
+
+        st.subheader("Simcem solids moles")
+        solids_df_eq = pd.DataFrame([dict(solids_moles_eq)])
+        solids_df_eq = solids_df_eq.transpose()
+        solids_df_eq.columns = ['Moles']
+        solids_df_eq.index.name = 'Component'
+        st.dataframe(solids_df_eq, use_container_width=True, column_config={
+            'Moles': st.column_config.NumberColumn(format="%.4f")
+        })
+
+    dbf_eq = get_wimcem_db()
+    phases_eq = sorted(dbf_eq.phases.keys())
+    from pycalphad import equilibrium
+    conditions_eq = {
+        v.T: T_degC + 273,
+        v.N: 1,
+        v.P: 101325
+    }
+    for k in list(comps_eq.keys())[1:]:
+        conditions_eq[v.X(k)] = comps_eq[k]
+
+    elements_eq = list(comps_eq.keys())
+    if "FE" in comps_eq:
+        elements_eq = elements_eq + ["VA"]
+
+    eq_calc = equilibrium(dbf_eq, elements_eq, phases_eq, conditions=conditions_eq, calc_opts={"pdens":200})
+
+    st.subheader("Phases and compositions")
+    phase_names_unfiltered_eq = eq_calc['Phase'].squeeze()
+    row_selector_eq = (phase_names_unfiltered_eq != '')
+    phase_names_eq = phase_names_unfiltered_eq[row_selector_eq]
+    fractions_eq = eq_calc["NP"].squeeze()[row_selector_eq]
+
+    if len(phase_names_eq) == 0:
+        st.error(f'(Convergence failure) at T={T_degC}°C')
+        for k in list(comps_eq.keys())[1:]:
+            conditions_eq[v.X(k)] = round(comps_eq[k], 3)
+        eq_calc = equilibrium(dbf_eq, elements_eq, phases_eq, conditions=conditions_eq, calc_opts={"pdens":200})
+        st.info("Retrying with rounded mole fractions (this sometimes helps convergence)")
+        phase_names_unfiltered_eq = eq_calc['Phase'].squeeze()
+        row_selector_eq = (phase_names_unfiltered_eq != '')
+        phase_names_eq = phase_names_unfiltered_eq[row_selector_eq]
+        fractions_eq = eq_calc["NP"].squeeze()[row_selector_eq]
+
+    results_dict_eq = {}
+    for ph, fr in zip(phase_names_eq.values, fractions_eq.values):
+        try:
+            phase_name = wimcem_to_simcem_phases[ph]
+        except:
+            phase_name = ph
+        results_dict_eq[phase_name] = fr * 100
+
+    results_df_eq = pd.DataFrame([results_dict_eq])
+    results_df_eq = results_df_eq.transpose()
+    results_df_eq.columns = ['Phase %']
+    results_df_eq.index.name = 'Phase'
+    st.dataframe(results_df_eq, use_container_width=True, column_config={
+        'Phase %': st.column_config.NumberColumn(format="%.2f")
+    })
+
 ## Create a new tab for XRF data upload ##
 elif selected_tab == "Upload XRF Data":
     st.title('Upload XRF Data')
@@ -449,10 +593,10 @@ elif selected_tab == "Upload XRF Data":
             xrf_data.insert(0, 'Include', True)
 
         edited_data = st.data_editor(xrf_data, key="data_editor")
-        
+
         if 'xrf_data' not in st.session_state:
             st.session_state['xrf_data'] = xrf_data
-        
+
         st.session_state['xrf_data'] = edited_data
 
         df = edited_data.set_index("ID")
@@ -460,9 +604,10 @@ elif selected_tab == "Upload XRF Data":
 
         # st.write("Processed DataFrame:")
         # st.write(df)
-        
+
     else:
-        raise ValueError("Raw material data not found. Please upload raw material data first.")
+        st.info("👆 Please upload an Excel file with your XRF data to continue.")
+        st.stop()
 
     
     st.header("Target formulation")
@@ -522,7 +667,7 @@ elif selected_tab == "Upload XRF Data":
     st.write("This is to help when designing raw mixes with non-ideal raw materials, to understand what are the maximum limits.")
     st.write("If you use enough analytical/pure raw materials, you should see everything can be achieved at 100% purity according to the mass balance used here.")
     max_target_df = pd.DataFrame(max_target_data, columns=["ID", "Max wt%"] + list(raw_material_table_df_moles['ID']))
-    st.dataframe(max_target_df.set_index("ID"), use_container_width=False, column_config={
+    st.dataframe(max_target_df.set_index("ID"), use_container_width=True, column_config={
        row['ID']:st.column_config.NumberColumn(format="%.2f")  for key, row in xrf_data.iterrows()
     } | {
         "Max wt%":st.column_config.NumberColumn(format="%.2f"),
@@ -536,7 +681,10 @@ elif selected_tab == "Upload XRF Data":
     st.write('The mass amounts are on the basis of creating the target phases, thus the raw materials may sum to more/less than the target masses given loss on ignition.')
     raw_mix_design = formulation_solver()
     raw_mix_design['Mass %'] =  raw_mix_design['Mass Amounts'] / raw_mix_design['Mass Amounts'].sum() * 100
-    st.write(raw_mix_design)
+    st.dataframe(raw_mix_design, use_container_width=True, column_config={
+        'Mass Amounts': st.column_config.NumberColumn(format="%.2f"),
+        'Mass %': st.column_config.NumberColumn(format="%.2f")
+    })
 
     st.header("Thermodynamic solvers")
     st.write('This thermodynamic solver takes the "optimal" mix calculated above and tries to predict what it will form for particular clinkering conditions.')
@@ -549,22 +697,23 @@ elif selected_tab == "Upload XRF Data":
     solids_moles, results_df = thermosolver(df, T_degC=T_degC, SO2ppm=SO2ppm)
     results_df["T"] = T_degC
     results_df["SO2ppm"] = SO2ppm
-    
+
     results_df["Type"] = "Calculated"
-    
+
     xrf_data["Type"] = "XRF"
-    
-    ## Saving of results 
+
+    ## Saving of results
+    st.header("Export Results")
     combined_df = pd.concat([xrf_data,results_df])
-    
+
     import io
-    buffer=io.BytesIO() 
+    buffer=io.BytesIO()
     with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
         combined_df.to_excel(writer,index=False)
-        
-    ## Streamlit download button    
+
+    ## Streamlit download button
     st.download_button(
-            label="Download results",
+            label="📥 Download results as Excel",
             data=buffer,
             file_name="exported_results.xlsx",
             mime="application/vnd.ms-excel",
@@ -573,6 +722,39 @@ elif selected_tab == "Upload XRF Data":
 ## This tab is the Mix Design, this might be done away with but is kept in here to prevent Wahab from breaking anything
 elif selected_tab == "Mix Design":
     debug= st.checkbox("Verbose/Debug mode",False)
+
+    # Example selection
+    st.header("Example Systems")
+    example_type = st.radio("Load example:", ["CSA (Calcium Sulfoaluminate)", "OPC (Ordinary Portland Cement)"], index=0, horizontal=True)
+
+    if example_type == "CSA (Calcium Sulfoaluminate)":
+        example_targets = collections.defaultdict(float, {
+            "belite": 60.0,
+            "ye'elimite": 30.0,
+            "Cement:C4AF": 10.0,
+        })
+        example_include = ["Gypsum", "Elemental Sulfur", "Sillica", "Alumina", "Limestone", "Iron Oxide"]
+        default_temp = 1250.0
+    else:  # OPC
+        example_targets = collections.defaultdict(float, {
+            "alite": 65.0,
+            "belite": 15.0,
+            "Ca3Al2O6": 8.0,
+            "Cement:C4AF": 12.0,
+        })
+        example_include = ["Limestone", "Alumina", "Sillica", "Iron Oxide"]
+        default_temp = 1430.0
+
+    # Update session state if example changed
+    if 'current_example' not in st.session_state or st.session_state['current_example'] != example_type:
+        st.session_state['current_example'] = example_type
+        st.session_state['target_df'] = pd.DataFrame([
+            {"Amount": v} for k, v in example_targets.items()
+        ], columns=["Amount"], index=[k for k, v in example_targets.items()]).fillna(0)
+
+        # Update raw materials included
+        st.session_state['raw_df']['Include'] = st.session_state['raw_df']['ID'].isin(example_include)
+
     st.header("Raw Materials")
     st.write("The table below is for any impure raw materials where you have an oxide analysis in weight % (very common in cement where an XRF is used to analyse raw materials).")
     st.write("The total weight column is calculated for you to help you check your data entry. CaO is assumed to be present as CaSO₄ until all SO₃ or CaO present is accounted for, and any remaining CaO is assumed to be present as CaCO₃. This often leads to additional mass (from the CO₂).")
@@ -680,7 +862,10 @@ elif selected_tab == "Mix Design":
     st.write('The mass amounts are on the basis of creating the target phases, thus the raw materials may sum to more/less than the target masses given loss on ignition.')
     raw_mix_design = formulation_solver()
     raw_mix_design['Mass %'] =  raw_mix_design['Mass Amounts'] / raw_mix_design['Mass Amounts'].sum() * 100
-    st.write(raw_mix_design)
+    st.dataframe(raw_mix_design, use_container_width=True, column_config={
+        'Mass Amounts': st.column_config.NumberColumn(format="%.2f"),
+        'Mass %': st.column_config.NumberColumn(format="%.2f")
+    })
 
     ## I am starting to add the modified Bogue and Bogue type calculations here just for comparison
     ABYF = ['alite','belite', 'ye\'elimite', 'Cement:C4AF']
@@ -688,11 +873,11 @@ elif selected_tab == "Mix Design":
         st.header("Modified Bogue")
         st.write("This is the bogue output for the above raw oxides, this is just for comparison because people like Bogue type equations. The below thermodynamic solver is far more accurate")
         st.write("The modified bogue is taken from the work of Duvallet et al. 2014")
-    
+
     st.header("Thermodynamic solvers")
     st.write('This thermodynamic solver takes the "optimal" mix calculated above and tries to predict what it will form for particular clinkering conditions.')
-    T_degC = st.slider("Clinkering Temperature", 600.0, 1450.0, 1250.0, 1.0, format="%f℃")
-    st.write("A limit of 1450℃ for the clinkering temperature is given for OPC but melting is not included in the Hanein et al database so take its results with heavy caution.")
+    T_degC = st.slider("Clinkering Temperature", 600.0, 1600.0, default_temp, 1.0, format="%f℃")
+    st.write("Melting is not included in the Hanein et al database so take results at very high temperatures with caution.")
     SO2ppm = st.slider("SO₂ partial pressure", 1.0, 95000.0, 2000.0, 1.0, format="%fPPM")
     st.write("SO₂ partial pressure is limited to 95,000 PPM as that's the max concentration in air to allow full combination to SO₃.")
 
@@ -720,50 +905,75 @@ elif selected_tab == "Mix Design":
     
     comps = {k:v/total for k,v in comps.items()}
     
-    # st.header("EXPERIMENTAL: Abdul et al Thermodynamic solver")
-    # st.write("This solver includes melt phases and high temperature data, but only includes the CaO-SiO2-Al2O3-FeO-Fe2O3-O-S system and is still being developed.")
-    # st.write("Input solids vector")
-    # st.write(comps)
-    # st.write("Simcem solids moles")
-    # st.write(solids_moles)
-    # dbf = get_wimcem_db()
-    # phases = sorted(dbf.phases.keys())
-    # from pycalphad import equilibrium
-    # conditions = {#This is temperature
-    #               v.T:T_degC + 273,
-    #               # System size (so in this case 1 mole)
-    #               v.N:1,
-    #               #Pressure (this is the default_
-    #               v.P:101325}
-    # #Skip the first comp, as it is deduced by pycalphad which requires mol frac to sum to one.
-    # for k in list(comps.keys())[1:]:
-    #     conditions[v.X(k)] = comps[k]
+    st.header("EXPERIMENTAL: Abdul et al Thermodynamic solver")
+    st.write("This solver includes melt phases and high temperature data, but only includes the CaO-SiO2-Al2O3-FeO-Fe2O3-O-S system and is still being developed.")
 
-    # elements = list(comps.keys())
-    # if "FE" in comps:
-    #    elements = elements + ["VA"]
-    # eq = equilibrium(dbf, elements, phases, conditions=conditions, calc_opts ={"pdens":200})
-    # # st.write("Solver results")
-    # # st.text(eq)
-    # st.write("Phases and compositions")
-    # phase_names_unfiltered = eq['Phase'].squeeze()
-    # row_selector = (phase_names_unfiltered != '')
-    # phase_names = phase_names_unfiltered[row_selector]
-    # fractions = eq["NP"].squeeze()[row_selector]
-    # if len(phase_names) == 0:
-    #     st.error(f'(Convergence failure) at T='+str(T_degC))
-    #     for k in list(comps.keys())[1:]:
-    #         conditions[v.X(k)] = round(comps[k],3)
-    #     eq = equilibrium(dbf, elements, phases, conditions=conditions, calc_opts ={"pdens":200})
-    #     st.write("Retrying results (I'm rounding off some of the digits in the mole fraction, I found this helps)")
-    #     st.write("Phases and compositions (Ph %)")
-    #     phase_names_unfiltered = eq['Phase'].squeeze()
-    #     row_selector = (phase_names_unfiltered != '')
-    #     phase_names = phase_names_unfiltered[row_selector]
-    #     fractions = eq["NP"].squeeze()[row_selector]
-    # results_dict = {}
-    # for ph,fr in zip(phase_names.values,fractions.values):
-    #     x = wimcem_to_simcem_phases[ph]
-    #     results_dict[x] = [fr*100]
-    # results_df = pd.DataFrame(results_dict)
-    # st.write(results_df)
+    with st.expander("Show input composition details"):
+        st.subheader("Input solids vector")
+        comps_df = pd.DataFrame([comps])
+        comps_df = comps_df.transpose()
+        comps_df.columns = ['Mole Fraction']
+        comps_df.index.name = 'Component'
+        st.dataframe(comps_df, use_container_width=True, column_config={
+            'Mole Fraction': st.column_config.NumberColumn(format="%.4f")
+        })
+
+        st.subheader("Simcem solids moles")
+        solids_df = pd.DataFrame([dict(solids_moles)])
+        solids_df = solids_df.transpose()
+        solids_df.columns = ['Moles']
+        solids_df.index.name = 'Component'
+        st.dataframe(solids_df, use_container_width=True, column_config={
+            'Moles': st.column_config.NumberColumn(format="%.4f")
+        })
+    dbf = get_wimcem_db()
+    phases = sorted(dbf.phases.keys())
+    from pycalphad import equilibrium
+    conditions = {#This is temperature
+                  v.T:T_degC + 273,
+                  # System size (so in this case 1 mole)
+                  v.N:1,
+                  #Pressure (this is the default_
+                  v.P:101325}
+    #Skip the first comp, as it is deduced by pycalphad which requires mol frac to sum to one.
+    for k in list(comps.keys())[1:]:
+        conditions[v.X(k)] = comps[k]
+
+    elements = list(comps.keys())
+    if "FE" in comps:
+       elements = elements + ["VA"]
+    eq = equilibrium(dbf, elements, phases, conditions=conditions, calc_opts ={"pdens":200})
+    # st.write("Solver results")
+    # st.text(eq)
+    st.write("Phases and compositions")
+    phase_names_unfiltered = eq['Phase'].squeeze()
+    row_selector = (phase_names_unfiltered != '')
+    phase_names = phase_names_unfiltered[row_selector]
+    fractions = eq["NP"].squeeze()[row_selector]
+    if len(phase_names) == 0:
+        st.error(f'(Convergence failure) at T={T_degC}°C')
+        for k in list(comps.keys())[1:]:
+            conditions[v.X(k)] = round(comps[k],3)
+        eq = equilibrium(dbf, elements, phases, conditions=conditions, calc_opts ={"pdens":200})
+        st.info("Retrying with rounded mole fractions (this sometimes helps convergence)")
+        phase_names_unfiltered = eq['Phase'].squeeze()
+        row_selector = (phase_names_unfiltered != '')
+        phase_names = phase_names_unfiltered[row_selector]
+        fractions = eq["NP"].squeeze()[row_selector]
+
+    st.subheader("Phases and compositions")
+    results_dict = {}
+    for ph,fr in zip(phase_names.values,fractions.values):
+        try:
+            phase_name = wimcem_to_simcem_phases[ph]
+        except:
+            phase_name = ph
+        results_dict[phase_name] = fr*100
+
+    results_df = pd.DataFrame([results_dict])
+    results_df = results_df.transpose()
+    results_df.columns = ['Phase %']
+    results_df.index.name = 'Phase'
+    st.dataframe(results_df, use_container_width=True, column_config={
+        'Phase %': st.column_config.NumberColumn(format="%.2f")
+    })
