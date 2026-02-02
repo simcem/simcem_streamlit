@@ -35,7 +35,7 @@ initial_raw_solids = {
     "Industrial Iron oxide" : ({"Fe₂O₃":34.39, "SiO₂":27.81, "Al₂O₃":15.59, "CaO":5.39, "MgO":0.31, "SO₃":0.74, "Na₂O":0.26, "K₂O":0.25, "TiO₂":1.80, "MnO":0.13, "ZnO":0.01, "SrO":0.02, "P₂O₅":0.13}),
     
     '"Chinese" Bauxite': {"CaO":0.16, "Al₂O₃":69.32, "SiO₂":11.52, "Fe₂O₃":1.21},
-    'Gypsum': ({"SiO₂":1.58, "Al₂O₃":0.06, "Fe₂O₃":0.05, "CaO": 32.95, "MgO": 0.12, "SO₃":57.54}),
+    'Gypsum': ({"SiO₂":1.08, "Al₂O₃":0.12, "Fe₂O₃":0.04, "CaO": 37.69, "MgO": 0.87, "SO₃":50.51}),
     "Anhydrite":  {"CaO":M("CaO") / M("CaSO4") * 100, "SO₃":M("SO3") / M("CaSO4") * 100},
     "Limestone" : {"CaO":M("CaO") / M("CaCO3")*100},
     "Lime" : {"CaO":100},
@@ -314,7 +314,8 @@ def thermosolver(df, T_degC, SO2ppm, Equilibrium=False):
         solids_moles = simcem.MassToMoles(db, solids_mass)
     #Convert the SO3 to CaSO4 for insertion
     if solids_moles['CaO'] < solids_moles['SO3']:
-        st.error("SO3 in designed raw mix is more than supplied CaO, not sure how to insert it?")
+        raw_materials_errors.error("Raw mix needs more CaO, cannot convert all required SO₃ to CaSO₄")
+        return solids_moles, None
     else:
         solids_moles['CaO'] = solids_moles['CaO'] - solids_moles['SO3']
         solids_moles['CaSO4'] = solids_moles['SO3']
@@ -327,7 +328,9 @@ def thermosolver(df, T_degC, SO2ppm, Equilibrium=False):
     gas = Air * (1e6 - SO2ppm) + SO2 * SO2ppm 
 
     #We use 1M moles of gas as its causing weird effects on the calculation.
+
     gas, solid, liquid, sys = simcem.clinker.setup_phases(gas, solids_moles, T_degC+273.15)
+
     sys.equilibrate()
     a = solid.components
     a.removeSmallComponents(1e-7)
@@ -760,6 +763,7 @@ elif selected_tab == "Mix Design":
     st.write("The total weight column is calculated for you to help you check your data entry. CaO is assumed to be present as CaSO₄ until all SO₃ or CaO present is accounted for, and any remaining CaO is assumed to be present as CaCO₃. This often leads to additional mass (from the CO₂).")
     st.write("You do not need to make the mass total add to 100%, the unknown mass will just be ignored by the calculations, but you must keep an eye on this.")
     st.write("Note: We exclude the following oxides from further analysis due to data limitations", excluded_oxides)
+    raw_materials_errors = st.container()
     raw_material_table_df = st.data_editor(st.session_state['raw_df'],
                                             num_rows="dynamic",
                                             width='content',
