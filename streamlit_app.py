@@ -449,106 +449,106 @@ elif selected_tab == 'Equilibrium Calculator':
         'Mass (g)': st.column_config.NumberColumn(format="%.2f")
     })
 
-    # EXPERIMENTAL: Abdul et al solver
-    st.header("EXPERIMENTAL: Abdul et al Thermodynamic solver")
-    st.write("This solver includes melt phases and high temperature data, but only includes the CaO-SiO2-Al2O3-FeO-Fe2O3-O-S system and is still being developed.")
-    st.write("This currently only does a single point equilibrium calculation.")
+    # EXPERIMENTAL: Abdul et al solver - COMMENTED OUT DUE TO MEMORY CONSTRAINTS ON STREAMLIT CLOUD
+    # st.header("EXPERIMENTAL: Abdul et al Thermodynamic solver")
+    # st.write("This solver includes melt phases and high temperature data, but only includes the CaO-SiO2-Al2O3-FeO-Fe2O3-O-S system and is still being developed.")
+    # st.write("This currently only does a single point equilibrium calculation.")
 
-    # Convert oxide percentages to moles for wimcem
-    oxide_percent_eq = {key:value for key, value in zip(solid_composition_df['Oxide'].to_dict().values(), solid_composition_df['Mass Amounts'].to_dict().values())}
-    solids_mass_eq = simcem.Components(oxide_percent_eq)
-    solids_moles_eq = simcem.MassToMoles(db, solids_mass_eq)
+    # # Convert oxide percentages to moles for wimcem
+    # oxide_percent_eq = {key:value for key, value in zip(solid_composition_df['Oxide'].to_dict().values(), solid_composition_df['Mass Amounts'].to_dict().values())}
+    # solids_mass_eq = simcem.Components(oxide_percent_eq)
+    # solids_moles_eq = simcem.MassToMoles(db, solids_mass_eq)
 
-    # Prepare composition for pycalphad
-    req_oxides = {"CaO":"L", "Al2O3":"A", "SiO2":"Q"}
-    comps_eq = collections.defaultdict(float)
-    total_eq = 0
-    for ox, ox_w in req_oxides.items():
-        if ox not in solids_moles_eq:
-            comps_eq[ox_w] = 0
-        else:
-            comps_eq[ox_w] = solids_moles_eq[ox]
-            total_eq += solids_moles_eq[ox]
-    if "CaSO4" in solids_moles_eq:
-        comps_eq["X"] += solids_moles_eq["CaSO4"]
-        comps_eq["L"] += solids_moles_eq["CaSO4"]
-        comps_eq["O"] += 3 * solids_moles_eq["CaSO4"]
-        total_eq += solids_moles_eq["CaSO4"] + solids_moles_eq["CaSO4"] + 3*solids_moles_eq["CaSO4"]
-    if "Fe2O3" in solids_moles_eq:
-        comps_eq["FE"] += 2 * solids_moles_eq["Fe2O3"]
-        comps_eq["O"] += 3 * solids_moles_eq["Fe2O3"]
-        total_eq += 2 * solids_moles_eq["Fe2O3"] + 3 * solids_moles_eq["Fe2O3"]
+    # # Prepare composition for pycalphad
+    # req_oxides = {"CaO":"L", "Al2O3":"A", "SiO2":"Q"}
+    # comps_eq = collections.defaultdict(float)
+    # total_eq = 0
+    # for ox, ox_w in req_oxides.items():
+    #     if ox not in solids_moles_eq:
+    #         comps_eq[ox_w] = 0
+    #     else:
+    #         comps_eq[ox_w] = solids_moles_eq[ox]
+    #         total_eq += solids_moles_eq[ox]
+    # if "CaSO4" in solids_moles_eq:
+    #     comps_eq["X"] += solids_moles_eq["CaSO4"]
+    #     comps_eq["L"] += solids_moles_eq["CaSO4"]
+    #     comps_eq["O"] += 3 * solids_moles_eq["CaSO4"]
+    #     total_eq += solids_moles_eq["CaSO4"] + solids_moles_eq["CaSO4"] + 3*solids_moles_eq["CaSO4"]
+    # if "Fe2O3" in solids_moles_eq:
+    #     comps_eq["FE"] += 2 * solids_moles_eq["Fe2O3"]
+    #     comps_eq["O"] += 3 * solids_moles_eq["Fe2O3"]
+    #     total_eq += 2 * solids_moles_eq["Fe2O3"] + 3 * solids_moles_eq["Fe2O3"]
 
-    comps_eq = {k:v/total_eq for k,v in comps_eq.items()}
+    # comps_eq = {k:v/total_eq for k,v in comps_eq.items()}
 
-    with st.expander("Show input composition details"):
-        st.subheader("Input solids vector")
-        comps_df_eq = pd.DataFrame([comps_eq])
-        comps_df_eq = comps_df_eq.transpose()
-        comps_df_eq.columns = ['Mole Fraction']
-        comps_df_eq.index.name = 'Component'
-        st.dataframe(comps_df_eq, use_container_width=True, column_config={
-            'Mole Fraction': st.column_config.NumberColumn(format="%.4f")
-        })
+    # with st.expander("Show input composition details"):
+    #     st.subheader("Input solids vector")
+    #     comps_df_eq = pd.DataFrame([comps_eq])
+    #     comps_df_eq = comps_df_eq.transpose()
+    #     comps_df_eq.columns = ['Mole Fraction']
+    #     comps_df_eq.index.name = 'Component'
+    #     st.dataframe(comps_df_eq, use_container_width=True, column_config={
+    #         'Mole Fraction': st.column_config.NumberColumn(format="%.4f")
+    #     })
 
-        st.subheader("Simcem solids moles")
-        solids_df_eq = pd.DataFrame([dict(solids_moles_eq)])
-        solids_df_eq = solids_df_eq.transpose()
-        solids_df_eq.columns = ['Moles']
-        solids_df_eq.index.name = 'Component'
-        st.dataframe(solids_df_eq, use_container_width=True, column_config={
-            'Moles': st.column_config.NumberColumn(format="%.4f")
-        })
+    #     st.subheader("Simcem solids moles")
+    #     solids_df_eq = pd.DataFrame([dict(solids_moles_eq)])
+    #     solids_df_eq = solids_df_eq.transpose()
+    #     solids_df_eq.columns = ['Moles']
+    #     solids_df_eq.index.name = 'Component'
+    #     st.dataframe(solids_df_eq, use_container_width=True, column_config={
+    #         'Moles': st.column_config.NumberColumn(format="%.4f")
+    #     })
 
-    dbf_eq = get_wimcem_db()
-    phases_eq = sorted(dbf_eq.phases.keys())
-    from pycalphad import equilibrium
-    conditions_eq = {
-        v.T: T_degC + 273,
-        v.N: 1,
-        v.P: 101325
-    }
-    for k in list(comps_eq.keys())[1:]:
-        conditions_eq[v.X(k)] = comps_eq[k]
+    # dbf_eq = get_wimcem_db()
+    # phases_eq = sorted(dbf_eq.phases.keys())
+    # from pycalphad import equilibrium
+    # conditions_eq = {
+    #     v.T: T_degC + 273,
+    #     v.N: 1,
+    #     v.P: 101325
+    # }
+    # for k in list(comps_eq.keys())[1:]:
+    #     conditions_eq[v.X(k)] = comps_eq[k]
 
-    elements_eq = list(comps_eq.keys())
-    if "FE" in comps_eq:
-        elements_eq = elements_eq + ["VA"]
+    # elements_eq = list(comps_eq.keys())
+    # if "FE" in comps_eq:
+    #     elements_eq = elements_eq + ["VA"]
 
-    eq_calc = equilibrium(dbf_eq, elements_eq, phases_eq, conditions=conditions_eq, calc_opts={"pdens":200})
+    # eq_calc = equilibrium(dbf_eq, elements_eq, phases_eq, conditions=conditions_eq, calc_opts={"pdens":200})
 
-    st.subheader("Phases and compositions")
-    phase_names_unfiltered_eq = eq_calc['Phase'].squeeze()
-    row_selector_eq = (phase_names_unfiltered_eq != '')
-    phase_names_eq = phase_names_unfiltered_eq[row_selector_eq]
-    fractions_eq = eq_calc["NP"].squeeze()[row_selector_eq]
+    # st.subheader("Phases and compositions")
+    # phase_names_unfiltered_eq = eq_calc['Phase'].squeeze()
+    # row_selector_eq = (phase_names_unfiltered_eq != '')
+    # phase_names_eq = phase_names_unfiltered_eq[row_selector_eq]
+    # fractions_eq = eq_calc["NP"].squeeze()[row_selector_eq]
 
-    if len(phase_names_eq) == 0:
-        st.error(f'(Convergence failure) at T={T_degC}°C')
-        for k in list(comps_eq.keys())[1:]:
-            conditions_eq[v.X(k)] = round(comps_eq[k], 3)
-        eq_calc = equilibrium(dbf_eq, elements_eq, phases_eq, conditions=conditions_eq, calc_opts={"pdens":200})
-        st.info("Retrying with rounded mole fractions (this sometimes helps convergence)")
-        phase_names_unfiltered_eq = eq_calc['Phase'].squeeze()
-        row_selector_eq = (phase_names_unfiltered_eq != '')
-        phase_names_eq = phase_names_unfiltered_eq[row_selector_eq]
-        fractions_eq = eq_calc["NP"].squeeze()[row_selector_eq]
+    # if len(phase_names_eq) == 0:
+    #     st.error(f'(Convergence failure) at T={T_degC}°C')
+    #     for k in list(comps_eq.keys())[1:]:
+    #         conditions_eq[v.X(k)] = round(comps_eq[k], 3)
+    #     eq_calc = equilibrium(dbf_eq, elements_eq, phases_eq, conditions=conditions_eq, calc_opts={"pdens":200})
+    #     st.info("Retrying with rounded mole fractions (this sometimes helps convergence)")
+    #     phase_names_unfiltered_eq = eq_calc['Phase'].squeeze()
+    #     row_selector_eq = (phase_names_unfiltered_eq != '')
+    #     phase_names_eq = phase_names_unfiltered_eq[row_selector_eq]
+    #     fractions_eq = eq_calc["NP"].squeeze()[row_selector_eq]
 
-    results_dict_eq = {}
-    for ph, fr in zip(phase_names_eq.values, fractions_eq.values):
-        try:
-            phase_name = wimcem_to_simcem_phases[ph]
-        except:
-            phase_name = ph
-        results_dict_eq[phase_name] = fr * 100
+    # results_dict_eq = {}
+    # for ph, fr in zip(phase_names_eq.values, fractions_eq.values):
+    #     try:
+    #         phase_name = wimcem_to_simcem_phases[ph]
+    #     except:
+    #         phase_name = ph
+    #     results_dict_eq[phase_name] = fr * 100
 
-    results_df_eq = pd.DataFrame([results_dict_eq])
-    results_df_eq = results_df_eq.transpose()
-    results_df_eq.columns = ['Phase %']
-    results_df_eq.index.name = 'Phase'
-    st.dataframe(results_df_eq, use_container_width=True, column_config={
-        'Phase %': st.column_config.NumberColumn(format="%.2f")
-    })
+    # results_df_eq = pd.DataFrame([results_dict_eq])
+    # results_df_eq = results_df_eq.transpose()
+    # results_df_eq.columns = ['Phase %']
+    # results_df_eq.index.name = 'Phase'
+    # st.dataframe(results_df_eq, use_container_width=True, column_config={
+    #     'Phase %': st.column_config.NumberColumn(format="%.2f")
+    # })
 
 ## Create a new tab for XRF data upload ##
 elif selected_tab == "Upload XRF Data":
@@ -884,96 +884,97 @@ elif selected_tab == "Mix Design":
     df = raw_material_table_df.set_index("ID")
     solids_moles, results_df = thermosolver(df,T_degC=T_degC, SO2ppm=SO2ppm)
 
-    req_oxides = {"CaO":"L", "Al2O3":"A", "SiO2":"Q"}
-    comps = collections.defaultdict(float)
-    total = 0
-    for ox,ox_w in req_oxides.items():
-        if ox not in solids_moles:
-            comps[ox_w] = 0
-        else:
-            comps[ox_w] = solids_moles[ox]
-            total += solids_moles[ox]
-    if "CaSO4" in solids_moles:
-        comps["X"] += solids_moles["CaSO4"]
-        comps["L"] += solids_moles["CaSO4"]
-        comps["O"] += 3 * solids_moles["CaSO4"]
-        total += solids_moles["CaSO4"] + solids_moles["CaSO4"] + 3*solids_moles["CaSO4"]
-    if "Fe2O3" in solids_moles:
-       comps["FE"] += 2 * solids_moles["Fe2O3"]
-       comps["O"] += 3 * solids_moles["Fe2O3"]
-       total += 2 * solids_moles["Fe2O3"] + 3 * solids_moles["Fe2O3"]
-    
-    comps = {k:v/total for k,v in comps.items()}
-    
-    st.header("EXPERIMENTAL: Abdul et al Thermodynamic solver")
-    st.write("This solver includes melt phases and high temperature data, but only includes the CaO-SiO2-Al2O3-FeO-Fe2O3-O-S system and is still being developed.")
+    # EXPERIMENTAL: Abdul et al solver - COMMENTED OUT DUE TO MEMORY CONSTRAINTS ON STREAMLIT CLOUD
+    # req_oxides = {"CaO":"L", "Al2O3":"A", "SiO2":"Q"}
+    # comps = collections.defaultdict(float)
+    # total = 0
+    # for ox,ox_w in req_oxides.items():
+    #     if ox not in solids_moles:
+    #         comps[ox_w] = 0
+    #     else:
+    #         comps[ox_w] = solids_moles[ox]
+    #         total += solids_moles[ox]
+    # if "CaSO4" in solids_moles:
+    #     comps["X"] += solids_moles["CaSO4"]
+    #     comps["L"] += solids_moles["CaSO4"]
+    #     comps["O"] += 3 * solids_moles["CaSO4"]
+    #     total += solids_moles["CaSO4"] + solids_moles["CaSO4"] + 3*solids_moles["CaSO4"]
+    # if "Fe2O3" in solids_moles:
+    #    comps["FE"] += 2 * solids_moles["Fe2O3"]
+    #    comps["O"] += 3 * solids_moles["Fe2O3"]
+    #    total += 2 * solids_moles["Fe2O3"] + 3 * solids_moles["Fe2O3"]
 
-    with st.expander("Show input composition details"):
-        st.subheader("Input solids vector")
-        comps_df = pd.DataFrame([comps])
-        comps_df = comps_df.transpose()
-        comps_df.columns = ['Mole Fraction']
-        comps_df.index.name = 'Component'
-        st.dataframe(comps_df, use_container_width=True, column_config={
-            'Mole Fraction': st.column_config.NumberColumn(format="%.4f")
-        })
+    # comps = {k:v/total for k,v in comps.items()}
 
-        st.subheader("Simcem solids moles")
-        solids_df = pd.DataFrame([dict(solids_moles)])
-        solids_df = solids_df.transpose()
-        solids_df.columns = ['Moles']
-        solids_df.index.name = 'Component'
-        st.dataframe(solids_df, use_container_width=True, column_config={
-            'Moles': st.column_config.NumberColumn(format="%.4f")
-        })
-    dbf = get_wimcem_db()
-    phases = sorted(dbf.phases.keys())
-    from pycalphad import equilibrium
-    conditions = {#This is temperature
-                  v.T:T_degC + 273,
-                  # System size (so in this case 1 mole)
-                  v.N:1,
-                  #Pressure (this is the default_
-                  v.P:101325}
-    #Skip the first comp, as it is deduced by pycalphad which requires mol frac to sum to one.
-    for k in list(comps.keys())[1:]:
-        conditions[v.X(k)] = comps[k]
+    # st.header("EXPERIMENTAL: Abdul et al Thermodynamic solver")
+    # st.write("This solver includes melt phases and high temperature data, but only includes the CaO-SiO2-Al2O3-FeO-Fe2O3-O-S system and is still being developed.")
 
-    elements = list(comps.keys())
-    if "FE" in comps:
-       elements = elements + ["VA"]
-    eq = equilibrium(dbf, elements, phases, conditions=conditions, calc_opts ={"pdens":200})
-    # st.write("Solver results")
-    # st.text(eq)
-    st.write("Phases and compositions")
-    phase_names_unfiltered = eq['Phase'].squeeze()
-    row_selector = (phase_names_unfiltered != '')
-    phase_names = phase_names_unfiltered[row_selector]
-    fractions = eq["NP"].squeeze()[row_selector]
-    if len(phase_names) == 0:
-        st.error(f'(Convergence failure) at T={T_degC}°C')
-        for k in list(comps.keys())[1:]:
-            conditions[v.X(k)] = round(comps[k],3)
-        eq = equilibrium(dbf, elements, phases, conditions=conditions, calc_opts ={"pdens":200})
-        st.info("Retrying with rounded mole fractions (this sometimes helps convergence)")
-        phase_names_unfiltered = eq['Phase'].squeeze()
-        row_selector = (phase_names_unfiltered != '')
-        phase_names = phase_names_unfiltered[row_selector]
-        fractions = eq["NP"].squeeze()[row_selector]
+    # with st.expander("Show input composition details"):
+    #     st.subheader("Input solids vector")
+    #     comps_df = pd.DataFrame([comps])
+    #     comps_df = comps_df.transpose()
+    #     comps_df.columns = ['Mole Fraction']
+    #     comps_df.index.name = 'Component'
+    #     st.dataframe(comps_df, use_container_width=True, column_config={
+    #         'Mole Fraction': st.column_config.NumberColumn(format="%.4f")
+    #     })
 
-    st.subheader("Phases and compositions")
-    results_dict = {}
-    for ph,fr in zip(phase_names.values,fractions.values):
-        try:
-            phase_name = wimcem_to_simcem_phases[ph]
-        except:
-            phase_name = ph
-        results_dict[phase_name] = fr*100
+    #     st.subheader("Simcem solids moles")
+    #     solids_df = pd.DataFrame([dict(solids_moles)])
+    #     solids_df = solids_df.transpose()
+    #     solids_df.columns = ['Moles']
+    #     solids_df.index.name = 'Component'
+    #     st.dataframe(solids_df, use_container_width=True, column_config={
+    #         'Moles': st.column_config.NumberColumn(format="%.4f")
+    #     })
+    # dbf = get_wimcem_db()
+    # phases = sorted(dbf.phases.keys())
+    # from pycalphad import equilibrium
+    # conditions = {#This is temperature
+    #               v.T:T_degC + 273,
+    #               # System size (so in this case 1 mole)
+    #               v.N:1,
+    #               #Pressure (this is the default_
+    #               v.P:101325}
+    # #Skip the first comp, as it is deduced by pycalphad which requires mol frac to sum to one.
+    # for k in list(comps.keys())[1:]:
+    #     conditions[v.X(k)] = comps[k]
 
-    results_df = pd.DataFrame([results_dict])
-    results_df = results_df.transpose()
-    results_df.columns = ['Phase %']
-    results_df.index.name = 'Phase'
-    st.dataframe(results_df, use_container_width=True, column_config={
-        'Phase %': st.column_config.NumberColumn(format="%.2f")
-    })
+    # elements = list(comps.keys())
+    # if "FE" in comps:
+    #    elements = elements + ["VA"]
+    # eq = equilibrium(dbf, elements, phases, conditions=conditions, calc_opts ={"pdens":200})
+    # # st.write("Solver results")
+    # # st.text(eq)
+    # st.write("Phases and compositions")
+    # phase_names_unfiltered = eq['Phase'].squeeze()
+    # row_selector = (phase_names_unfiltered != '')
+    # phase_names = phase_names_unfiltered[row_selector]
+    # fractions = eq["NP"].squeeze()[row_selector]
+    # if len(phase_names) == 0:
+    #     st.error(f'(Convergence failure) at T={T_degC}°C')
+    #     for k in list(comps.keys())[1:]:
+    #         conditions[v.X(k)] = round(comps[k],3)
+    #     eq = equilibrium(dbf, elements, phases, conditions=conditions, calc_opts ={"pdens":200})
+    #     st.info("Retrying with rounded mole fractions (this sometimes helps convergence)")
+    #     phase_names_unfiltered = eq['Phase'].squeeze()
+    #     row_selector = (phase_names_unfiltered != '')
+    #     phase_names = phase_names_unfiltered[row_selector]
+    #     fractions = eq["NP"].squeeze()[row_selector]
+
+    # st.subheader("Phases and compositions")
+    # results_dict = {}
+    # for ph,fr in zip(phase_names.values,fractions.values):
+    #     try:
+    #         phase_name = wimcem_to_simcem_phases[ph]
+    #     except:
+    #         phase_name = ph
+    #     results_dict[phase_name] = fr*100
+
+    # results_df = pd.DataFrame([results_dict])
+    # results_df = results_df.transpose()
+    # results_df.columns = ['Phase %']
+    # results_df.index.name = 'Phase'
+    # st.dataframe(results_df, use_container_width=True, column_config={
+    #     'Phase %': st.column_config.NumberColumn(format="%.2f")
+    # })
