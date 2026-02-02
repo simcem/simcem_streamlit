@@ -1,0 +1,9 @@
+[project]
+name = "simcem-streamlit"
+version = "0.1.0"
+description = "Add your description here"
+authors = [ ]
+requires-python = ">=3.13"
+dependencies = [
+    "pycalphad"
+]

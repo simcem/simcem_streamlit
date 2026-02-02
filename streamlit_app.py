@@ -342,7 +342,7 @@ def thermosolver(df, T_degC, SO2ppm, Equilibrium=False):
     results_df_display = results_df.transpose()
     results_df_display.columns = ['Mass (g)']
     results_df_display.index.name = 'Phase'
-    st.dataframe(results_df_display, use_container_width=True, column_config={
+    st.dataframe(results_df_display, width='stretch', column_config={
         'Mass (g)': st.column_config.NumberColumn(format="%.2f")
     })
     if Equilibrium:
@@ -357,7 +357,7 @@ def thermosolver(df, T_degC, SO2ppm, Equilibrium=False):
         extra_calcs_df.index.name = 'Parameter'
         st.subheader("LSF, SR and AR of the oxide raw mix")
         st.write("LSF is calculated by CaO/(2.8 SiO2 + 1.2 Al2O3 + 0.65 Fe2O3)")
-        st.dataframe(extra_calcs_df, use_container_width=True, column_config={
+        st.dataframe(extra_calcs_df, width='stretch', column_config={
             'Value': st.column_config.NumberColumn(format="%.3f")
         })
         return results_df
@@ -381,12 +381,12 @@ def thermosolver(df, T_degC, SO2ppm, Equilibrium=False):
     extra_calcs_df = extra_calcs_df.transpose()
     extra_calcs_df.columns = ['Value']
     extra_calcs_df.index.name = 'Parameter'
-    st.dataframe(oxides_in_mass[["Oxide % of raw mix"]], use_container_width=True, column_config={
+    st.dataframe(oxides_in_mass[["Oxide % of raw mix"]], width='stretch', column_config={
         'Oxide % of raw mix': st.column_config.NumberColumn(format="%.2f")
     })
     st.subheader("LSF, SR and AR of the oxide raw mix")
     st.write("LSF is calculated by CaO/(2.8 SiO2 + 1.2 Al2O3 + 0.65 Fe2O3)")
-    st.dataframe(extra_calcs_df, use_container_width=True, column_config={
+    st.dataframe(extra_calcs_df, width='stretch', column_config={
         'Value': st.column_config.NumberColumn(format="%.3f")
     })
     st.write(f'Total is {oxides_in_mass["Oxide % of raw mix"].sum():.2f}. Note this percentage may be less than expected due to LOI of CO2 not accounted for in the raw mix table.')
@@ -445,7 +445,7 @@ elif selected_tab == 'Equilibrium Calculator':
     bogue_df.columns = ['Mass (g)']
     bogue_df.index.name = 'Phase'
 
-    st.dataframe(bogue_df, use_container_width=True, column_config={
+    st.dataframe(bogue_df, width='stretch', column_config={
         'Mass (g)': st.column_config.NumberColumn(format="%.2f")
     })
 
@@ -616,7 +616,7 @@ elif selected_tab == "Upload XRF Data":
     st.write(r'You can delete rows by selecting the row and pressing delete on your keyboard.')
     target_table_df = st.data_editor(st.session_state['target_df'],
                                     num_rows="dynamic",
-                                    use_container_width=False,
+                                    width='content',
                                     column_config=dict(
                                         _index=st.column_config.SelectboxColumn("ID",required=True, options=alias_to_ID.keys()),
                                         Amount=st.column_config.NumberColumn("Mass Amount", help="The amount of the phase present", format="%.2f", min_value=0, default=0)
@@ -636,9 +636,9 @@ elif selected_tab == "Upload XRF Data":
 
     if debug:
         st.write("Elemental molar compositions of the raw material.")
-        st.dataframe(raw_material_table_df_moles, use_container_width=True)
+        st.dataframe(raw_material_table_df_moles, width='stretch')
         st.write("Elemental molar compositions for the target phases.")
-        st.dataframe(target_table_df_moles, use_container_width=True)
+        st.dataframe(target_table_df_moles, width='stretch')
 
     #For each row in the target table, determine the maximum amount that can be
     #produced. We do this by setting up an optimisation to max the target, while
@@ -667,7 +667,7 @@ elif selected_tab == "Upload XRF Data":
     st.write("This is to help when designing raw mixes with non-ideal raw materials, to understand what are the maximum limits.")
     st.write("If you use enough analytical/pure raw materials, you should see everything can be achieved at 100% purity according to the mass balance used here.")
     max_target_df = pd.DataFrame(max_target_data, columns=["ID", "Max wt%"] + list(raw_material_table_df_moles['ID']))
-    st.dataframe(max_target_df.set_index("ID"), use_container_width=True, column_config={
+    st.dataframe(max_target_df.set_index("ID"), width='stretch', column_config={
        row['ID']:st.column_config.NumberColumn(format="%.2f")  for key, row in xrf_data.iterrows()
     } | {
         "Max wt%":st.column_config.NumberColumn(format="%.2f"),
@@ -681,7 +681,7 @@ elif selected_tab == "Upload XRF Data":
     st.write('The mass amounts are on the basis of creating the target phases, thus the raw materials may sum to more/less than the target masses given loss on ignition.')
     raw_mix_design = formulation_solver()
     raw_mix_design['Mass %'] =  raw_mix_design['Mass Amounts'] / raw_mix_design['Mass Amounts'].sum() * 100
-    st.dataframe(raw_mix_design, use_container_width=True, column_config={
+    st.dataframe(raw_mix_design, width='stretch', column_config={
         'Mass Amounts': st.column_config.NumberColumn(format="%.2f"),
         'Mass %': st.column_config.NumberColumn(format="%.2f")
     })
@@ -762,7 +762,7 @@ elif selected_tab == "Mix Design":
     st.write("Note: We exclude the following oxides from further analysis due to data limitations", excluded_oxides)
     raw_material_table_df = st.data_editor(st.session_state['raw_df'],
                                             num_rows="dynamic",
-                                            use_container_width=False,
+                                            width='content',
                                             column_config=dict(
                                             Total=st.column_config.NumberColumn(disabled=True, format="%.2f"),
                                             Include=st.column_config.CheckboxColumn(default=False),
@@ -788,7 +788,7 @@ elif selected_tab == "Mix Design":
     st.write(r'You can delete rows by selecting the row and pressing delete on your keyboard.')
     target_table_df = st.data_editor(st.session_state['target_df'],
                                     num_rows="dynamic",
-                                    use_container_width=False,
+                                    width='content',
                                     column_config=dict(
                                         _index=st.column_config.SelectboxColumn("ID",required=True, options=alias_to_ID.keys()),
                                         Amount=st.column_config.NumberColumn("Mass Amount", help="The amount of the phase present", format="%.2f", min_value=0, default=0)
@@ -814,9 +814,9 @@ elif selected_tab == "Mix Design":
 
     if debug:
         st.write("Elemental molar compositions of the raw material.")
-        st.dataframe(raw_material_table_df_moles, use_container_width=True)
+        st.dataframe(raw_material_table_df_moles, width='stretch')
         st.write("Elemental molar compositions for the target phases.")
-        st.dataframe(target_table_df_moles, use_container_width=True)
+        st.dataframe(target_table_df_moles, width='stretch')
         
 
     #For each row in the target table, determine the maximum amount that can be
@@ -848,7 +848,7 @@ elif selected_tab == "Mix Design":
     st.write("This is to help when designing raw mixes with non-ideal raw materials, to understand what are the maximum limits.")
     st.write("If you use enough analytical/pure raw materials, you should see everything can be achieved at 100% purity according to the mass balance used here.")
     max_target_df = pd.DataFrame(max_target_data, columns=["ID", "Max wt%"] + list(raw_material_table_df_moles['ID']))
-    st.dataframe(max_target_df.set_index("ID"), use_container_width=False, column_config={
+    st.dataframe(max_target_df.set_index("ID"), width='content', column_config={
        row['ID']:st.column_config.NumberColumn(format="%.2f")  for key, row in raw_material_table_df.iterrows()
     } | {
         "Max wt%":st.column_config.NumberColumn(format="%.2f"),
@@ -862,7 +862,7 @@ elif selected_tab == "Mix Design":
     st.write('The mass amounts are on the basis of creating the target phases, thus the raw materials may sum to more/less than the target masses given loss on ignition.')
     raw_mix_design = formulation_solver()
     raw_mix_design['Mass %'] =  raw_mix_design['Mass Amounts'] / raw_mix_design['Mass Amounts'].sum() * 100
-    st.dataframe(raw_mix_design, use_container_width=True, column_config={
+    st.dataframe(raw_mix_design, width='stretch', column_config={
         'Mass Amounts': st.column_config.NumberColumn(format="%.2f"),
         'Mass %': st.column_config.NumberColumn(format="%.2f")
     })
