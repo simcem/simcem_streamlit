@@ -51,7 +51,7 @@ initial_raw_solids = {
     # "Clay_R":({"CaO":2.93, "Al₂O₃":19.72, "Fe₂O₃":9.56, "SiO2":56.92, "SO₃":4.83}),
     # '"Gypsum"': ({"SiO₂":2.11, "Al₂O₃":0.74, "Fe₂O₃":0.42, "CaO": 35.82, "SO₃":53.26}),
 }
-default_include = ["Industrial Clay", " Industrial Limestone", "Elemental Sulfur", "Gypsum"]
+default_include = ["Industrial Clay", "Industrial Limestone", "Elemental Sulfur", "Gypsum"]
 #default_include = ["QNCC_limestone", "Sulfur", "Alumina"]
 
 import collections
@@ -394,7 +394,7 @@ def thermosolver(df, T_degC, SO2ppm, Equilibrium=False):
     st.dataframe(extra_calcs_df, width='stretch', column_config={
         'Value': st.column_config.NumberColumn(format="%.3f")
     })
-    st.write(f'Total is {oxides_in_mass["Oxide % of raw mix"].sum():.2f}. Note this percentage may be less than expected due to LOI of CO2 not accounted for in the raw mix table.')
+    st.write(f'Total is {oxides_in_mass["Oxide % of raw mix"].sum():.2f}. Note this percentage may be less than expected due to LOI of CO₂ not accounted for in the raw mix table.')
     ## I am returning the input solid moles for additional calcs but also a dataframe for the results, this is then saved as a excel sheet 
     return solids_moles, results_df
 
@@ -736,7 +736,7 @@ elif selected_tab == "Mix Design":
             "ye'elimite": 30.0,
             "Cement:C4AF": 10.0,
         })
-        example_include = ["Industrial Clay", "Gypsum", "Elemental Sulfur"]
+        example_include = ["Industrial Clay","Industrial Limestone", "Gypsum", "Elemental Sulfur"]
         default_temp = 1250.0
         st.session_state['target_df'] = pd.DataFrame([{"Amount": v} for k, v in example_targets.items()], columns=["Amount"], index=[k for k, v in example_targets.items()]).fillna(0)
         st.session_state['raw_df']['Include'] = st.session_state['raw_df']['ID'].isin(example_include)
