@@ -97,9 +97,9 @@
           ];
 
           shellHook = ''
-            uv venv .venv --system-site-packages --clear
-            uv sync
+            python3 -m venv .venv --system-site-packages 
             source .venv/bin/activate
+            python3 -m pip install pycalphad 
           '';
         };
       })  
