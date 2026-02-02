@@ -35,6 +35,8 @@ initial_raw_solids = {
     "Industrial Iron oxide" : ({"Fe₂O₃":34.39, "SiO₂":27.81, "Al₂O₃":15.59, "CaO":5.39, "MgO":0.31, "SO₃":0.74, "Na₂O":0.26, "K₂O":0.25, "TiO₂":1.80, "MnO":0.13, "ZnO":0.01, "SrO":0.02, "P₂O₅":0.13}),
     
     '"Chinese" Bauxite': {"CaO":0.16, "Al₂O₃":69.32, "SiO₂":11.52, "Fe₂O₃":1.21},
+    # Stability of ternesite and the production at scale of ternesite-based clinkers
+
     'Gypsum': ({"SiO₂":1.08, "Al₂O₃":0.12, "Fe₂O₃":0.04, "CaO": 37.69, "MgO": 0.87, "SO₃":50.51}),
     "Anhydrite":  {"CaO":M("CaO") / M("CaSO4") * 100, "SO₃":M("SO3") / M("CaSO4") * 100},
     "Limestone" : {"CaO":M("CaO") / M("CaCO3")*100},
@@ -728,17 +730,17 @@ elif selected_tab == "Mix Design":
 
     # Example selection
     st.header("Example Systems")
-    example_type = st.radio("Load example:", ["CSA (Calcium Sulfoaluminate)", "OPC (Ordinary Portland Cement)"], index=0, horizontal=True)
-
-    if example_type == "CSA (Calcium Sulfoaluminate)":
+    if st.button("Load CSA (Calcium Sulfoaluminate) example"):
         example_targets = collections.defaultdict(float, {
             "belite": 60.0,
             "ye'elimite": 30.0,
             "Cement:C4AF": 10.0,
         })
-        example_include = ["Gypsum", "Elemental Sulfur", "Sillica", "Alumina", "Limestone", "Iron Oxide"]
+        example_include = ["Industrial Clay", "Gypsum", "Elemental Sulfur"]
         default_temp = 1250.0
-    else:  # OPC
+        st.session_state['target_df'] = pd.DataFrame([{"Amount": v} for k, v in example_targets.items()], columns=["Amount"], index=[k for k, v in example_targets.items()]).fillna(0)
+        st.session_state['raw_df']['Include'] = st.session_state['raw_df']['ID'].isin(example_include)
+    if st.button("Load OPC (Ordinary Portland Cement) example"):
         example_targets = collections.defaultdict(float, {
             "alite": 65.0,
             "belite": 15.0,
@@ -747,15 +749,7 @@ elif selected_tab == "Mix Design":
         })
         example_include = ["Limestone", "Alumina", "Sillica", "Iron Oxide"]
         default_temp = 1430.0
-
-    # Update session state if example changed
-    if 'current_example' not in st.session_state or st.session_state['current_example'] != example_type:
-        st.session_state['current_example'] = example_type
-        st.session_state['target_df'] = pd.DataFrame([
-            {"Amount": v} for k, v in example_targets.items()
-        ], columns=["Amount"], index=[k for k, v in example_targets.items()]).fillna(0)
-
-        # Update raw materials included
+        st.session_state['target_df'] = pd.DataFrame([{"Amount": v} for k, v in example_targets.items()], columns=["Amount"], index=[k for k, v in example_targets.items()]).fillna(0)        
         st.session_state['raw_df']['Include'] = st.session_state['raw_df']['ID'].isin(example_include)
 
     st.header("Raw Materials")
@@ -880,7 +874,7 @@ elif selected_tab == "Mix Design":
 
     st.header("Thermodynamic solvers")
     st.write('This thermodynamic solver takes the "optimal" mix calculated above and tries to predict what it will form for particular clinkering conditions.')
-    T_degC = st.slider("Clinkering Temperature", 600.0, 1600.0, default_temp, 1.0, format="%f℃")
+    T_degC = st.slider("Clinkering Temperature", 600.0, 1600.0, 1250.0, 1.0, format="%f℃")
     st.write("Melting is not included in the Hanein et al database so take results at very high temperatures with caution.")
     SO2ppm = st.slider("SO₂ partial pressure", 1.0, 95000.0, 2000.0, 1.0, format="%fPPM")
     st.write("SO₂ partial pressure is limited to 95,000 PPM as that's the max concentration in air to allow full combination to SO₃.")
