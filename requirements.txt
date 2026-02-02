@@ -1,5 +1,5 @@
 pandas==2.3.3
-Pint==0.20.1
+Pint==0.25.2
 plotly==5.15.0
 scipy==1.17.0
 streamlit==1.53.0
